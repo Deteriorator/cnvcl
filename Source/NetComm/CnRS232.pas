@@ -149,6 +149,7 @@ const
   ME_RING = 4;
   ME_RLSD = 8;
 
+  COMMAND_PARSE_BUFFER_SIZE = 1024*8;//8k
 type
   TParity = (paNone, paOdd, paEven, paMark, paSpace);
   {* 串口通讯奇偶校验方式
@@ -377,6 +378,18 @@ type
   TSendDataEmptyEvent = procedure(Sender: TObject) of object;
   {* 串口通讯数据缓冲区空事件，该事件表明缓冲区数据已成功发送完成。}
 
+  TParseCommandEvent = procedure(Command: Pointer) of object;
+   {* 串口通讯命令解析事件，该事件表明缓冲区数据已成功解析。}
+
+  PRS232ParseCommand =^TRS232ParseCommand;
+  TRS232ParseCommand = packed  record
+     Command:Word; //命令代码
+     Length:Word;  //命令长度
+     Handle:TParseCommandEvent; //处理句柄
+  end;
+
+ TRS232ParseCommandList = array of TRS232ParseCommand;
+
 //------------------------------------------------------------------------------
 // RS232串口通讯读线程
 //------------------------------------------------------------------------------
@@ -536,10 +549,33 @@ type
     {* 数据发送缓冲区空事件}
   end;
 
+  TCnRS232Parse = class(TCnRS232)
+  private
+    FParseBuffer:array [0..COMMAND_PARSE_BUFFER_SIZE -1] of Byte;
+    FBufferPos:Integer; //当前命令缓冲位置
+    FLastParsePos:Integer; //上次解析位置
+    FParseCommandList:TRS232ParseCommandList;
+
+    procedure SetParseCommandList(List:TRS232ParseCommandList);
+    procedure PushData(Buffer:Pointer ;Length:Word);
+    function  GetCommand(Cmd:Word): PRS232ParseCommand;
+    function  ParseCommand:Boolean;
+  protected
+    procedure GetComponentInfo(var AName, Author, Email, Comment: string); override;
+    procedure ReceiveData(Buffer: PAnsiChar; BufferLength: WORD); override;
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure RestParse;
+    property ParseCommandList:TRS232ParseCommandList read FParseCommandList write SetParseCommandList;
+  end;
+
 implementation
 
 const
   INPUT_BUFFER_SIZE = 2048;
+
+
 
 { TReadThread }
 
@@ -2001,6 +2037,116 @@ begin
   Author := SCnPack_Zjy;
   Email := SCnPack_ZjyEmail;
   Comment := SCnRS232Comment;
+end;
+
+{ TCnRS232Parse }
+
+constructor TCnRS232Parse.Create(AOwner: TComponent );
+begin
+  inherited Create(AOwner);
+
+end;
+
+destructor TCnRS232Parse.Destroy;
+begin
+  SetLength(FParseCommandList,0);
+  FParseCommandList:=nil;
+  inherited;
+end;
+
+function TCnRS232Parse.GetCommand(Cmd: Word): PRS232ParseCommand;
+var
+ i:Integer;
+begin
+  Result := nil;
+  for I := 0 to Length(FParseCommandList)-1 do
+   begin
+      if (FParseCommandList[i].Command = Cmd) then
+        begin
+           Result := @FParseCommandList[i];
+           Exit;
+        end;
+   end;
+end;
+
+procedure TCnRS232Parse.GetComponentInfo(var AName, Author, Email,
+  Comment: string);
+begin
+  AName :=   'RS232 Cerial Port Communications Parse Component';
+  Author :=  'Li Jigang';
+  Email :=  'ljg@cnpack.org';
+  Comment :=  'RS232 Serial Port Communications Parse Component';
+
+end;
+
+function TCnRS232Parse.ParseCommand:Boolean;
+var
+ _pCmd:PRS232ParseCommand;
+begin
+ Result:=False;
+  while  (FLastParsePos < FBufferPos ) do
+    begin
+       _pCmd:= GetCommand(PWORD(@FParseBuffer[FLastParsePos])^);
+       if (_pCmd =nil)  then
+        begin
+           Inc(FLastParsePos);
+           Continue;
+        end;
+
+       if ( (FBufferPos-FLastParsePos) >= _pCmd^.Length ) then
+       begin
+         if Assigned( _pCmd^.Handle) then _pCmd^.Handle(@FParseBuffer[FLastParsePos]); //执行命令回调
+         Inc(FLastParsePos, _pCmd^.Length );
+       end else
+       begin
+         if (FLastParsePos > 0) then
+           begin
+              CopyMemory(@FParseBuffer[0],@FParseBuffer[FLastParsePos], FBufferPos - FLastParsePos);
+              FBufferPos:= FBufferPos- FLastParsePos;
+              FLastParsePos:=0;
+
+              FillChar(FParseBuffer[FBufferPos], COMMAND_PARSE_BUFFER_SIZE - FBufferPos,0  );
+           end;
+          Exit;  //继续等待下次数据
+       end;
+
+    end;
+ Result:=True;
+end;
+
+procedure TCnRS232Parse.PushData(Buffer: Pointer; Length: Word);
+begin
+  if (COMMAND_PARSE_BUFFER_SIZE - FBufferPos) < Length then RestParse; //缓冲满
+  CopyMemory(@FParseBuffer[FBufferPos] ,Buffer ,Length ); //拷贝新数据到缓冲
+  Inc(FBufferPos,Length);
+end;
+
+procedure TCnRS232Parse.ReceiveData(Buffer: PAnsiChar; BufferLength: WORD);
+begin
+//  inherited;
+ PushData(Buffer,BufferLength); //压入新数据
+ if ParseCommand then RestParse; //解析指令
+end;
+
+procedure TCnRS232Parse.RestParse;
+begin
+  FillChar(FParseBuffer,Length(FParseBuffer),0 );
+  FBufferPos:=0; //当前命令缓冲位置
+  FLastParsePos:=0; //上次解析位置
+end;
+
+procedure TCnRS232Parse.SetParseCommandList(List: TRS232ParseCommandList);
+var
+ i:integer;
+begin
+ if Length(List) <=0 then Exit;
+ SetLength(FParseCommandList,Length(List));
+// CopyMemory(@FParseCommandList[0], @List[0], SizeOf(TRS232ParseCommandList));
+ for I := 0 to Length(List) -1  do
+  begin
+   FParseCommandList[i]:=List[i];
+  end;
+
 end;
 
 end.

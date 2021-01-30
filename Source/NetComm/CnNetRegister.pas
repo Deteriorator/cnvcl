@@ -58,7 +58,7 @@ implementation
 
 procedure Register;
 begin
-  RegisterComponents(SCnNetPalette, [TCnRS232]);
+  RegisterComponents(SCnNetPalette, [TCnRS232,TCnRS232Parse]);
   RegisterComponents(SCnNetPalette, [TCnModem]);
   RegisterComponents(SCnNetPalette, [TCnRS232Dialog]);
   RegisterComponents(SCnNetPalette, [TCnDialUp]);
