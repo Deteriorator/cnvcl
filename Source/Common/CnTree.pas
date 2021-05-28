@@ -1,7 +1,7 @@
 {******************************************************************************}
 {                       CnPack For Delphi/C++Builder                           }
 {                     中国人自己的开放源码第三方开发包                         }
-{                   (C)Copyright 2001-2020 CnPack 开发组                       }
+{                   (C)Copyright 2001-2021 CnPack 开发组                       }
 {                   ------------------------------------                       }
 {                                                                              }
 {            本开发包是开源的自由软件，您可以遵照 CnPack 的发布协议来修        }
@@ -375,6 +375,12 @@ type
     {* 将节点存入 VCL 的 TreeView 时针对每一个节点的触发事件 }
 {$ENDIF}
   end;
+
+{$IFDEF SUPPORT_FMX}
+
+function GetNextSiblingItem(Item: TTreeViewItem): TTreeViewItem;
+
+{$ENDIF}
 
 implementation
 

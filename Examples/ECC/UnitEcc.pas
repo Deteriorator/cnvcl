@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ComCtrls, CnECC, ExtCtrls, Buttons, TeEngine, Series, TeeProcs,
-  Chart, TypInfo, CnPrimeNumber, CnBigNumber, CnNativeDecl, CnCommon, CnPemUtils;
+  Chart, TypInfo, CnPrimeNumber, CnBigNumber, CnNativeDecl, CnCommon, CnPemUtils, CnPolynomial;
 
 type
   TFormEcc = class(TForm)
@@ -222,6 +222,20 @@ type
     cbbKeyHash: TComboBox;
     btnKeyGenerate: TButton;
     btnKeyLoadSig: TButton;
+    btnBNUpdate: TButton;
+    btnBNEccCalc: TButton;
+    cbbInt64EccPreset: TComboBox;
+    btnEccTestAdd: TButton;
+    btnHassenTest: TButton;
+    btnHassenTest2: TButton;
+    btnInt64SchoofTest: TButton;
+    btnEccSchoof: TButton;
+    btnSimpleAttack: TButton;
+    btnTestCRT: TButton;
+    btnInt64EccCountOrder: TButton;
+    btnInt64CountOrder1: TButton;
+    btnInt64CountEccPoints3: TButton;
+    mmoBNEccPoints: TMemo;
     procedure btnTest1Click(Sender: TObject);
     procedure btnTest0Click(Sender: TObject);
     procedure btnTestOnClick(Sender: TObject);
@@ -281,6 +295,19 @@ type
     procedure btnKeyVerifyClick(Sender: TObject);
     procedure btnKeyGenerateClick(Sender: TObject);
     procedure btnKeyLoadSigClick(Sender: TObject);
+    procedure btnSimpleAttackClick(Sender: TObject);
+    procedure btnTestCRTClick(Sender: TObject);
+    procedure btnBNUpdateClick(Sender: TObject);
+    procedure btnBNEccCalcClick(Sender: TObject);
+    procedure cbbInt64EccPresetChange(Sender: TObject);
+    procedure btnEccTestAddClick(Sender: TObject);
+    procedure btnHassenTestClick(Sender: TObject);
+    procedure btnHassenTest2Click(Sender: TObject);
+    procedure btnInt64SchoofTestClick(Sender: TObject);
+    procedure btnEccSchoofClick(Sender: TObject);
+    procedure btnInt64EccCountOrderClick(Sender: TObject);
+    procedure btnInt64CountOrder1Click(Sender: TObject);
+    procedure btnInt64CountEccPoints3Click(Sender: TObject);
   private
     FEcc64E2311: TCnInt64Ecc;
     FEcc64E2311Points: array[0..23] of array [0..23] of Boolean;
@@ -297,7 +324,11 @@ type
     procedure CalcE2311Points;
     procedure UpdateE2311Chart;
     procedure ShowBnEcc;
+    procedure ShowMsg(Data: Int64); overload;
+    procedure ShowMsg(const Data: string); overload;
     procedure CalcLucas(X, Y, U_2, V_2, U_1, V_1: Int64; var U, V: Int64);
+
+    procedure CallUseless; // 调用必要的函数防止被 Link 时忽略
   public
     { Public declarations }
   end;
@@ -478,6 +509,8 @@ begin
   FPublicKey := TCnEccPublicKey.Create;
   FKeyEcc := TCnEcc.Create;
   cbbKeyHash.ItemIndex := 0;
+
+  CallUseless;
 end;
 
 procedure TFormEcc.FormDestroy(Sender: TObject);
@@ -706,35 +739,44 @@ begin
   chtEccInt64.LeftAxis.Maximum := P - 1;
 
   List := TStringList.Create;
-  for I := 0 to N + 1 do
-  begin
-    Q.X := X;
-    Q.Y := Y;
-    Ecc.MultiplePoint(I, Q);
-
-    if (Q.X = 0) and (Q.Y = 0) then
-      List.Add(Format('***%d: (%d,%d)***', [I, Q.X, Q.Y]))
-    else
-      List.Add(Format('%d: (%d,%d)', [I, Q.X, Q.Y]));
-    chtEccInt64.SeriesList[0].AddXY(Q.X, Q.Y);
-
-    X1 := Q.X;
-    Y1 := Q.Y;
-    // 顺便解 Q 点上的 X Y 方程验证
-    if not Ecc.PlainToPoint(X1, Q) then
+  try
+    for I := 0 to N + 1 do
     begin
-      ShowMessage(Format('Error %d: X: %d', [I, X1]));
-      Exit;
-    end
-    else if (Q.Y <> Y1) and (Q.Y <> Ecc.FiniteFieldSize - Y1) then
-    begin
-      ShowMessage(Format('Error %d: X: %d. Y %d <> %d', [I, X1, Y1, Q.Y]));
-      Exit;
+      Q.X := X;
+      Q.Y := Y;
+      Ecc.MultiplePoint(I, Q);
+
+      if (Q.X = 0) and (Q.Y = 0) then
+        List.Add(Format('***%d: (%d,%d)***', [I, Q.X, Q.Y]))
+      else
+        List.Add(Format('%d: (%d,%d)', [I, Q.X, Q.Y]));
+      chtEccInt64.SeriesList[0].AddXY(Q.X, Q.Y);
+
+      X1 := Q.X;
+      Y1 := Q.Y;
+
+      if Q.X <> 0 then // 注意 X 为 0 时 PlainToPoint 直接用上零点了
+      begin
+        // 顺便解 Q 点上的 X Y 方程验证
+        if not Ecc.PlainToPoint(X1, Q) then // 求不出 X 指定的 Y
+        begin
+          mmoGenECCPoints.Lines.Assign(List);
+          ShowMessage(Format('Error %d: X: %d', [I, X1]));
+          // Exit;
+        end // 求出来了要判断是否和之前计算的一样,
+        else if (Q.Y <> Y1) and (Q.Y <> Ecc.FiniteFieldSize - Y1) then
+        begin
+          mmoGenECCPoints.Lines.Assign(List);
+          ShowMessage(Format('Error %d: X: %d. Y %d <> %d', [I, X1, Y1, Q.Y]));
+          // Exit;
+        end;
+      end;
     end;
+    mmoGenECCPoints.Lines.Assign(List);
+  finally
+    List.Free;
+    Ecc.Free;
   end;
-  mmoGenECCPoints.Lines.Assign(List);
-  List.Free;
-  Ecc.Free;
 end;
 
 // 计算勒让德符号 ( A / P) 的值
@@ -1626,85 +1668,13 @@ end;
 
 procedure TFormEcc.btnSRLucasClick(Sender: TObject);
 var
-  R, P, U, X, Y, Z: Int64;
-  PrimeType: TCnEccPrimeType;
+  X, Y, P: Int64;
 begin
   P := StrToInt64(edtSRP.Text);
   X := StrToInt64(edtSRX.Text);
   edtSRY.Text := '';
 
-  if CnInt64Legendre(X, P) <> 1 then
-  begin
-    ShowMessage('NO Answer');
-    Exit;
-  end;
-
-  R := P mod 4;
-  if R = 3 then
-  begin
-    PrimeType := pt4U3;
-    U := P div 4;
-  end
-  else
-  begin
-    R := P mod 8;
-    if R = 1 then
-    begin
-      PrimeType := pt8U1;
-      U := P div 8;
-    end
-    else if R = 5 then
-    begin
-      PrimeType := pt8U5;
-      U := P div 8;
-    end
-    else
-      raise ECnEccException.Create('Invalid Finite Field Size.');
-  end;
-
-  case PrimeType of
-  pt4U3:  // 参考自《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节
-    begin
-      Y := MontgomeryPowerMod(X, U + 1, P);   // 55, 103 得 63
-      Z := Int64MultipleMod(Y, Y, P);
-      if Z = X then
-      begin
-        edtSRY.Text := IntToStr(Y);
-      end;
-    end;
-  pt8U5:  // 参考自《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节
-    begin
-      Z := MontgomeryPowerMod(X, 2 * U + 1, P);
-      if Z = 1 then
-      begin
-        Y := MontgomeryPowerMod(X, U + 1, P);
-        edtSRY.Text := IntToStr(Y);
-      end
-      else
-      begin
-        Z := P - Z;
-        if Z = 1 then
-        begin
-          // y = (2g * (4g)^u) mod p = (2g mod p * (4^u * g^u) mod p) mod p
-          Y := (Int64MultipleMod(X, 2, P) *
-            MontgomeryPowerMod(4, U, P) *
-            MontgomeryPowerMod(X, U, P)) mod P;
-          edtSRY.Text := IntToStr(Y);
-        end;
-      end;
-    end;
-  pt8U1: // 参考自 wikipedia 上的 Tonelli Shanks 二次剩余求解算法
-    begin
-      // 《SM2椭圆曲线公钥密码算法》附录 B 中的“模素数平方根的求解”一节 Lucas 序列计算出来的结果实在不对
-      // 换成 IEEE P1363 中说的 Lucas 序列
-      if SquareRootModPrimeLucas(X, P, Y) then
-      begin
-        edtSRY.Text := IntToStr(Y);
-        Exit;
-      end;
-    end;
-  end;
-
+  edtSRY.Text := IntToStr(CnInt64SquareRoot(X, P));
   if edtSRY.Text = '' then
     ShowMessage('NO Result')
   else
@@ -1931,6 +1901,544 @@ begin
 
     Stream.Free;
   end;
+end;
+
+procedure TFormEcc.btnSimpleAttackClick(Sender: TObject);
+var
+  I, J: Integer;
+  Ecc: TCnInt64Ecc;
+  Gi, Q, Qi, Sum: TCnInt64EccPoint;
+  Factors, Remains: array of TUInt64;
+begin
+{
+  用例：E/F1021 上的椭圆曲线: y^2 = x^3 + 905x + 100，阶也就是点总数为 966
+  基点：1006, 416，有点（612, 827），求这个点是 G 的 k 倍点的 k 值
+
+  966 = 2 * 3 * 7 * 23，要求 k 值，只需要求各子群内和 k 同余的几个值，
+  然后用中国剩余定理求 k。
+  如何求 2、3、7、23 等子群里同余的值呢？
+
+  先针对每一个素因子 i，先求 G 的 966/i 倍点 Gi，同时也求 Q 的 966/i 倍点 Qi，
+  再从 1 到 i - 1 遍历，求 Qi 的几倍点是 Gi，这个几就是 ki
+}
+
+  SetLength(Factors, 4);
+  SetLength(Remains, 4);
+  Factors[0] := 2; Factors[1] := 3; Factors[2] := 7; Factors[3] := 23;
+  Ecc := TCnInt64Ecc.Create(905, 100, 1021, 1006, 416, 966);
+  // G 点阶用例中没提供，用下面注释掉的代码求得正是 966。说明这个曲线中的 h = 1
+
+//  for I := 1 to 1000 do
+//  begin
+//    GT := Ecc.Generator;
+//    Ecc.MultiplePoint(I, GT);
+//    if (GT.X = 0) and (GT.Y = 0) then
+//      ShowMessage(IntToStr(I));
+//  end;
+
+  for I := Low(Factors) to High(Factors) do
+  begin
+    Gi := Ecc.Generator;                                                   //  G483    G322      G138      G42
+    Ecc.MultiplePoint(966 div Factors[I], Gi);  // 得到 966/i 倍点 Gi，分别是 (174,0) (147,933) (906,201) (890,665)
+
+    Q.X := 612; // G687 是要求的
+    Q.Y := 827;
+                                                                   // 倍点值   1        0          1       20
+    Qi := Q;
+    Ecc.MultiplePoint(966 div Factors[I], Qi); // 得到 966/i 倍点 Qi，分别是 (174,0)   (0,0)    (906,201) (68,281)
+                                                                          //  G483/Q483 G0/Q322  G138/Q138 G840/Q42
+    ShowMessage(Format('G%d: %s. Q%d: %s',[I, CnInt64EccPointToString(Gi), I, CnInt64EccPointToString(Qi)]));
+
+    if (Qi.X = 0) and (Qi.Y = 0) then
+    begin
+      // Gi 的 0 倍点是 0
+      ShowMessage(Format('Found k 0 for factor %d', [Factors[I]]));
+      Remains[I] := 0;
+    end
+    else
+    begin
+      Sum := Gi;
+      // 循环求 Qi 是 Gi 的几倍点, 结果累加在 Sum 中，也就是求 42*X mod 1021 = 840 照理 X = 20
+      for J := 1 to Factors[I] do
+      begin
+        if (Qi.X = Sum.X) and (Qi.Y = Sum.Y) then
+        begin
+          ShowMessage(Format('Found k %d for factor %d', [J, Factors[I]]));
+          Remains[I] := J;
+        end;
+        Ecc.PointAddPoint(Gi, Sum, Sum);
+      end;
+    end;
+  end;
+
+  // 求得各余数后用中国剩余定理求得 687
+  ShowMessage(IntToStr(ChineseRemainderTheoremInt64(Remains, Factors)));
+  Ecc.Free;
+end;
+
+procedure TFormEcc.btnTestCRTClick(Sender: TObject);
+var
+  R, F: array of TUInt64;
+  C: TUInt64;
+begin
+  SetLength(R, 4);
+  SetLength(F, 4);
+
+  // 中国剩余定理攻击阶的素因子较小的椭圆曲线，用例来源于
+  // Craig Costello 的《Pairings for beginners》中的 Example 2.2.2
+  F[0] := 2; F[1] := 3; F[2] := 7; F[3] := 23;
+  R[0] := 1; R[1] := 0; R[2] := 1; R[3] := 20;
+  C := ChineseRemainderTheoremInt64(R, F);
+  ShowMessage(IntToStr(C)); // 得到 687
+end;
+
+procedure TFormEcc.btnBNUpdateClick(Sender: TObject);
+begin
+//  FBNEcc.Load(IntToHex(StrToInt(edtBNEccA.Text), 8),
+//    IntToHex(StrToInt(edtBNEccB.Text), 8),
+//    IntToHex(StrToInt(edtBNEccP.Text), 8),
+//    IntToHex(StrToInt(edtBNEccGX.Text), 8),
+//    IntToHex(StrToInt(edtBNEccGY.Text), 8),
+//    IntToHex(StrToInt(edtBNEccOrder.Text), 8));
+
+  FBNEcc.CoefficientA.SetDec(edtBNEccA.Text);
+  FBNEcc.CoefficientB.SetDec(edtBNEccB.Text);
+  FBNEcc.FiniteFieldSize.SetDec(edtBNEccP.Text);
+  FBNEcc.Generator.X.SetDec(edtBNEccGX.Text);
+  FBNEcc.Generator.Y.SetDec(edtBNEccGY.Text);
+  FBNEcc.Order.SetDec(edtBNEccOrder.Text);
+end;
+
+procedure TFormEcc.btnBNEccCalcClick(Sender: TObject);
+var
+  P: TCnEccPoint;
+  K: TCnBigNumber;
+begin
+  P := TCnEccPoint.Create;
+  P.Assign(FBNEcc.Generator);
+  K := TCnBigNumber.Create;
+  K.SetDec(CnInputBox('Enter', 'Enter a Multiple Count', '10'));
+  FBNEcc.MultiplePoint(K, P);
+  edtBNEccResult.Text := CnEccPointToString(P);
+  P.Free;
+  K.Free;
+end;
+
+procedure TFormEcc.cbbInt64EccPresetChange(Sender: TObject);
+begin
+  case cbbInt64EccPreset.ItemIndex of
+    0:
+    begin
+      edtEccA.Text := '12';
+      edtEccB.Text := '199';
+      edtEccP.Text := '73';
+      edtEccGX.Text := '21';
+      edtEccGY.Text := '21';
+      edtEccOrder.Text := '61';
+    end;
+    1:
+    begin
+      edtEccA.Text := '905';
+      edtEccB.Text := '100';
+      edtEccP.Text := '1021';
+      edtEccGX.Text := '1006';
+      edtEccGY.Text := '416';
+      edtEccOrder.Text := '966';
+    end;
+  end;
+end;
+
+procedure TFormEcc.btnEccTestAddClick(Sender: TObject);
+var
+  P, A, B, X, Y, N, X1, Y1: Int64;
+  Ecc: TCnInt64Ecc;
+  Q: TCnInt64EccPoint;
+begin
+  A := StrToInt(edtEccA.Text);
+  B := StrToInt(edtEccB.Text);
+  X := StrToInt(edtEccGX.Text);
+  Y := StrToInt(edtEccGY.Text);
+  P := StrToInt(edtEccP.Text);
+  N := StrToInt(edtEccOrder.Text);
+
+  Ecc := TCnInt64Ecc.Create(A, B, P, X, Y, N);
+  mmoGenECCPoints.Lines.Clear;
+  chtEccInt64.BottomAxis.Maximum := P - 1;
+  chtEccInt64.LeftAxis.Maximum := P - 1;
+
+  Q.X := X;
+  Q.Y := Y;
+  Ecc.MultiplePoint(StrToInt(CnInputBox('Enter', 'Enter a Multiple Count', '23')), Q);
+
+  if (Q.X = 0) and (Q.Y = 0) then
+    mmoGenECCPoints.Lines.Add(Format('*** (%d,%d)***', [Q.X, Q.Y]))
+  else
+    mmoGenECCPoints.Lines.Add(Format('(%d,%d)', [Q.X, Q.Y]));
+
+  if Ecc.IsPointOnCurve(Q) then
+    ShowMessage('Point is on Curve.')
+  else
+    ShowMessage('Point is NOT on Curve.');
+
+  X1 := Q.X;
+  Y1 := Q.Y;
+
+  // 顺便解 Q 点上的 X Y 方程验证
+  if X1 <> 0 then // 如果 X1 是 0，PlainToPoint 会直接返回零点
+  begin
+    if not Ecc.PlainToPoint(X1, Q) then
+    begin
+      ShowMessage(Format('Error: X: %d', [X1]));
+    end
+    else if (Q.Y <> Y1) and (Q.Y <> Ecc.FiniteFieldSize - Y1) then
+    begin
+      ShowMessage(Format('Error: X: %d. Y %d <> %d', [X1, Y1, Q.Y]));
+    end;
+  end;
+  Ecc.Free;
+end;
+
+procedure TFormEcc.btnHassenTestClick(Sender: TObject);
+var
+  Ecc: TCnInt64Ecc;
+  D1, D2, D3: TCnInt64EccPoint;
+  I: Integer;
+begin
+  // 用例：给定椭圆曲线上的一个点比如基点 P(x, y)
+  // 验证其是否符合 π^2 - tπ+ q = 0
+  // 也就是穷举求 (x^(q^2), y^(q^2) - t * (x^q, y^q) + q * (x, y) = 0 中的 t
+  // 如 F1021 上定义的 y2 = x3 + 905 + 100  P(1006, 416) 阶为 966，点总数也为 966，那么 t 应该是 1021 + 1 - 966 = 56
+
+  Ecc := TCnInt64Ecc.Create(905, 100, 1021, 1006, 416, 966);
+  D1 := Ecc.Generator;
+  D1.X := MontgomeryPowerMod(D1.X, Ecc.FiniteFieldSize * Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+  D1.Y := MontgomeryPowerMod(D1.Y, Ecc.FiniteFieldSize * Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+
+  D2 := Ecc.Generator;
+  Ecc.MultiplePoint(Ecc.FiniteFieldSize, D2);
+
+  Ecc.PointAddPoint(D1, D2, D1);  // D1 得到 (x^(q^2), y^(q^2) + q * (x, y) 要验证它等于 t * (x^q, y^q)
+
+  D2 := Ecc.Generator;
+  D2.X := MontgomeryPowerMod(D2.X, Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+  D2.Y := MontgomeryPowerMod(D2.Y, Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+
+  D3 := D2;
+  // D2 得到 (x^q, y^q) 用 D3 累加验证多少等于 D1
+  for I := 1 to Ecc.FiniteFieldSize - 1 do // 实际上不需要这么大
+  begin
+    if CnInt64EccPointsEqual(D3, D1) then
+    begin
+      ShowMessage(IntToStr(I));  // 得到 56 符合 1021 + 1 - 966 = 56
+      Break;
+    end;
+    Ecc.PointAddPoint(D3, D2, D3);
+  end;
+
+  Ecc.Free;
+end;
+
+procedure TFormEcc.btnHassenTest2Click(Sender: TObject);
+var
+  Ecc: TCnInt64Ecc;
+  D1, D2, D3: TCnInt64EccPoint;
+  I: Integer;
+begin
+  // 用例：给定椭圆曲线上的一个点比如基点 P(x, y)
+  // 验证其是否符合 π^2 - tπ+ q = 0
+  // 也就是穷举求 (x^(q^2), y^(q^2) - t * (x^q, y^q) + q * (x, y) = 0 中的 t
+  // 如 F73 上定义的 y2 = x3 + 12x + 199  P(21, 21) 阶为 61，点总数也为 61，那么 t 应该是 73 + 1 - 61 = 13
+
+  Ecc := TCnInt64Ecc.Create(12, 199, 73, 21, 21, 61);
+  D1 := Ecc.Generator;
+  D1.X := MontgomeryPowerMod(D1.X, Ecc.FiniteFieldSize * Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+  D1.Y := MontgomeryPowerMod(D1.Y, Ecc.FiniteFieldSize * Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+
+  D2 := Ecc.Generator;
+  Ecc.MultiplePoint(Ecc.FiniteFieldSize, D2);
+
+  Ecc.PointAddPoint(D1, D2, D1);  // D1 得到 (x^(q^2), y^(q^2) + q * (x, y) 要验证它等于 t * (x^q, y^q)
+
+  D2 := Ecc.Generator;
+  D2.X := MontgomeryPowerMod(D2.X, Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+  D2.Y := MontgomeryPowerMod(D2.Y, Ecc.FiniteFieldSize, Ecc.FiniteFieldSize);
+
+  D3 := D2;
+  // D2 得到 (x^q, y^q) 用 D3 累加验证多少等于 D1
+  for I := 1 to Ecc.FiniteFieldSize - 1 do // 实际上不需要这么大
+  begin
+    if CnInt64EccPointsEqual(D3, D1) then
+    begin
+      ShowMessage(IntToStr(I));  // 得到 13 符合 73 + 1 - 13 = 61
+      Break;
+    end;
+    Ecc.PointAddPoint(D3, D2, D3);
+  end;
+
+  Ecc.Free;
+end;
+
+procedure TFormEcc.ShowMsg(Data: Int64);
+var
+  S: string;
+begin
+  S := IntToStr(Data) + ' - ' + TimeToStr(Now);
+  mmoGenECCPoints.Lines.Add(S);
+  Application.ProcessMessages;
+end;
+
+procedure TFormEcc.ShowMsg(const Data: string);
+begin
+  mmoBNEccPoints.Lines.Add(Data + ' - ' + TimeToStr(Now));
+  Application.ProcessMessages;
+end;
+
+procedure TFormEcc.btnInt64SchoofTestClick(Sender: TObject);
+begin
+  // Schoof 算法测试
+  ShowMsg(CnInt64EccSchoof(2, 1, 13));   // 8
+  ShowMsg(CnInt64EccSchoof(46, 74, 97)); // 80
+  ShowMsg(CnInt64EccSchoof(31, -12, 97)); // 112
+  ShowMsg(CnInt64EccSchoof(2, 1, 19));    // 27
+  ShowMsg(CnInt64EccSchoof(4, 2, 23)); // 21
+
+  ShowMsg(CnInt64EccSchoof(71, 602, 32003)); // 32021
+  ShowMsg(CnInt64EccSchoof(7, 1, 48299)); // 47988
+  ShowMsg(CnInt64EccSchoof(7, 1, 58657)); // 58971
+  ShowMsg(CnInt64EccSchoof(7, 1, 64007)); // 63585
+  ShowMsg(CnInt64EccSchoof(7, 1, 65173)); // 65462
+  ShowMsg(CnInt64EccSchoof(7, 1, 65423)); // 65340
+  ShowMsg(CnInt64EccSchoof(7, 1, 65521)); // 65772
+  ShowMsg(CnInt64EccSchoof(7, 1, 65537)); // 65751
+  ShowMsg(CnInt64EccSchoof(7, 1, 98993)); // 99279  Singular online 上核对通过
+
+  ShowMsg(CnInt64EccSchoof(7, 1, 2147483629)); // 30 秒左右，2147464597   以下 Singular online 上已无法计算核对
+  ShowMsg(CnInt64EccSchoof(7, 1, 2147483659)); // 30 秒左右，2147476793
+
+  // < Max Int64 的平方根再测测
+  ShowMsg(CnInt64EccSchoof(7, 1, 3037000493)); // 50 秒左右，3036927405
+
+  // < Max UInt32 测试基本通过，Q 平方超过了 Int64，但没超过 UInt64
+  ShowMsg(CnInt64EccSchoof(7, 1, 4294967291)); // 两分钟左右，4294994984
+
+  // 刚刚 > Max UInt32 测试基本通过，Q 平方超过了 UInt64，但没超过 2 * Max UInt64
+  ShowMsg(CnInt64EccSchoof(7, 1, 4294967311)); // 三分钟左右，4295222567
+
+  // < Sqrt(2 * Max UInt64) 测试基本通过，Q 平方接近 2 * Max UInt64
+  ShowMsg(CnInt64EccSchoof(7, 1, 6074000687)); // 四分钟左右，6074024457
+
+  // > Sqrt(2 * Max UInt64) 测试通过，Q 平方超过 2 * Max UInt64
+  ShowMsg(CnInt64EccSchoof(7, 1, 6074001169)); // 返回 6074123004 是能和大数版互相印证的
+end;
+
+procedure TFormEcc.btnEccSchoofClick(Sender: TObject);
+var
+  A, B, Q, R: TCnBigNumber;
+begin
+  A := TCnBigNumber.Create;
+  B := TCnBigNumber.Create;
+  Q := TCnBigNumber.Create;
+  R := TCnBigNumber.Create;
+
+  A.SetWord(2);
+  B.SetWord(1);
+  Q.SetWord(13);
+
+  if CnEccSchoof(R, A, B, Q) then
+    ShowMsg(R.ToDec); // 得到 8，成功！
+
+  A.SetWord(7);
+  B.SetWord(1);
+  Q.SetWord(65537);
+
+  if CnEccSchoof(R, A, B, Q) then
+    ShowMsg(R.ToDec); // 得到 65751，成功！
+
+  A.SetWord(7);
+  B.SetWord(1);
+  Q.SetDec('2147483629');
+
+  if CnEccSchoof(R, A, B, Q) then
+    ShowMsg(R.ToDec); // 得到 2147464597，成功！
+
+  A.SetWord(7);
+  B.SetWord(1);
+  Q.SetWord(3037000493);
+
+  if CnEccSchoof(R, A, B, Q) then
+    ShowMsg(R.ToDec); // 得到 3036927405，成功！
+
+  A.SetWord(7);
+  B.SetWord(1);
+  Q.SetDec('4294967291');
+
+  if CnEccSchoof(R, A, B, Q) then
+    ShowMsg(R.ToDec); // 得到 4294994984，本来和上面的不对，然后上面发现有溢出，修正了，就对了
+
+  A.SetWord(7);
+  B.SetWord(1);
+  Q.SetDec('6074000687');
+
+  if CnEccSchoof(R, A, B, Q) then
+    ShowMsg(R.ToDec); // 得到 6074024457，本来和上面的不对，然后上面发现有溢出，修正了，就对了
+
+  A.SetWord(7);
+  B.SetWord(1);
+  Q.SetDec('6074001169');
+
+  if CnEccSchoof(R, A, B, Q) then
+    ShowMsg(R.ToDec); // 得到  6074123004，无从判断对否，只能说至少比 Int64 版靠谱，以上几个均跑一两分钟
+
+  A.SetWord(7);
+  B.SetWord(1);
+  Q.SetDec('9223372036854775783');
+
+  if CnEccSchoof(R, A, B, Q) then
+    ShowMsg(R.ToDec); // 跑了一个半小时，得到 9223372037391309723，无从判断对否
+
+  R.Free;
+  Q.Free;
+  B.Free;
+  A.Free;
+end;
+
+// 硬性双重遍历求阶，极慢
+function InternalInt64CountEccPoints1(A, B, Q: Int64): Int64;
+var
+  I, J: Int64;
+  Ecc64: TCnInt64Ecc;
+  P: TCnInt64EccPoint;
+begin
+  Result := 1;
+  Ecc64 := TCnInt64Ecc.Create(A, B, Q, 0, 0, Q);
+
+  I := 0;
+  while I < Q do
+  begin
+    J := 0;
+    while J < Q do
+    begin
+      P.X := I;
+      P.Y := J;
+      if Ecc64.IsPointOnCurve(P) then
+      begin
+        Inc(Result);
+        if P.Y > 0 then
+        begin
+          P.Y := Q - P.Y;
+          if Ecc64.IsPointOnCurve(P) then
+            Inc(Result);
+        end;
+
+        // 这个 X 已经查完了，每个 X 不会有多于两个 Y。
+        Break;
+      end;
+      J := J + 1;
+    end;
+    // Break 到此，进行下一个 X 的循环
+    I := I + 1;
+  end;
+end;
+
+// 硬性单重遍历求阶，也不快
+function InternalInt64CountEccPoints2(A, B, Q: Int64): Int64;
+var
+  I: Int64;
+  Ecc64: TCnInt64Ecc;
+  P: TCnInt64EccPoint;
+begin
+  Result := 1;
+  Ecc64 := TCnInt64Ecc.Create(A, B, Q, 0, 0, Q);
+
+  I := 0;
+  while I < Q do
+  begin
+    if Ecc64.PlainToPoint(I, P) then
+      Result := Result + 2;
+    I := I + 1;
+  end;
+end;
+
+// 硬性单重勒让德符号求阶，快点儿
+function InternalInt64CountEccPoints3(A, B, Q: Int64): Int64;
+var
+  I: Int64;
+begin
+  Result := 1 + Q;
+
+  I := 0;
+  while I < Q do
+  begin
+    Result := Result + CnInt64Legendre(I * I * I + A * I + B, Q);
+    I := I + 1;
+  end;
+end;
+
+procedure TFormEcc.btnInt64EccCountOrderClick(Sender: TObject);
+begin
+  // 素数一大，基本上跑不完，不能跑
+  ShowMsg(InternalInt64CountEccPoints1(2, 1, 13));
+  ShowMsg(InternalInt64CountEccPoints1(46, 74, 97)); // 80
+  ShowMsg(InternalInt64CountEccPoints1(31, -12, 97)); // 112
+  ShowMsg(InternalInt64CountEccPoints1(2, 1, 19));    // 27
+  ShowMsg(InternalInt64CountEccPoints1(4, 2, 23)); // 21
+
+  ShowMsg(InternalInt64CountEccPoints1(71, 602, 32003)); // 32021  跑了 26 分钟
+  ShowMsg(InternalInt64CountEccPoints1(7, 1, 48299)); // 47988     跑了 38 分钟
+  ShowMsg(InternalInt64CountEccPoints1(7, 1, 58657)); // 58971     跑了 101 分钟
+end;
+
+procedure TFormEcc.btnInt64CountOrder1Click(Sender: TObject);
+begin
+  // 比上面的容易跑，但是也跑不完
+  ShowMsg(InternalInt64CountEccPoints2(2, 1, 13));
+  ShowMsg(InternalInt64CountEccPoints2(46, 74, 97)); // 80
+  ShowMsg(InternalInt64CountEccPoints2(31, -12, 97)); // 112
+  ShowMsg(InternalInt64CountEccPoints2(2, 1, 19));    // 27
+  ShowMsg(InternalInt64CountEccPoints2(4, 2, 23)); // 21
+
+  ShowMsg(InternalInt64CountEccPoints2(71, 602, 32003)); // 32021 一秒就搞定
+  ShowMsg(InternalInt64CountEccPoints2(7, 1, 48299)); // 47988    一秒也搞定
+  ShowMsg(InternalInt64CountEccPoints2(7, 1, 58657)); // 58971    30 秒
+end;
+
+procedure TFormEcc.btnInt64CountEccPoints3Click(Sender: TObject);
+begin
+  // 比上面的更容易跑点儿
+  ShowMsg(InternalInt64CountEccPoints3(2, 1, 13));
+  ShowMsg(InternalInt64CountEccPoints3(46, 74, 97)); // 80
+  ShowMsg(InternalInt64CountEccPoints3(31, -12, 97)); // 112
+  ShowMsg(InternalInt64CountEccPoints3(2, 1, 19));    // 27
+  ShowMsg(InternalInt64CountEccPoints3(4, 2, 23)); // 21
+
+  ShowMsg(InternalInt64CountEccPoints3(71, 602, 32003)); // 32021
+  ShowMsg(InternalInt64CountEccPoints3(7, 1, 48299)); // 47988
+  ShowMsg(InternalInt64CountEccPoints3(7, 1, 58657)); // 58971
+
+  ShowMsg(InternalInt64CountEccPoints3(7, 1, 98993)); // 99279     都一秒搞定
+end;
+
+procedure TFormEcc.CallUseless;
+var
+  TIP: TCnInt64Polynomial;
+  TIRP: TCnInt64RationalPolynomial;
+  TRP: TCnBigNumberPolynomial;
+  TBRP: TCnBigNumberRationalPolynomial;
+begin
+  TIP := TCnInt64Polynomial.Create;
+  TIRP := TCnInt64RationalPolynomial.Create;
+  TRP := TCnBigNumberPolynomial.Create;
+  TBRP := TCnBigNumberRationalPolynomial.Create;
+
+  TIP.ToString;
+  TIRP.ToString;
+  TBRP.ToString;
+  TBRP.ToString;
+
+  TIP.Free;
+  TIRP.Free;
+  TRP.Free;
+  TBRP.Free;
 end;
 
 end.

@@ -21,7 +21,7 @@ object FormPrime: TFormPrime
     Top = 16
     Width = 657
     Height = 429
-    ActivePage = tsDH
+    ActivePage = tsCRT
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsGenPrime: TTabSheet
@@ -567,6 +567,37 @@ object FormPrime: TFormPrime
         Caption = 'Rand'
         TabOrder = 16
         OnClick = btnDHRandClick
+      end
+    end
+    object tsCRT: TTabSheet
+      Caption = 'CRT && BSGS'
+      ImageIndex = 4
+      object btnCRTTest: TButton
+        Left = 24
+        Top = 24
+        Width = 75
+        Height = 25
+        Caption = 'CRT Test'
+        TabOrder = 0
+        OnClick = btnCRTTestClick
+      end
+      object btnCheckPrime: TButton
+        Left = 192
+        Top = 24
+        Width = 129
+        Height = 25
+        Caption = 'Check Prime'
+        TabOrder = 1
+        OnClick = btnCheckPrimeClick
+      end
+      object btnInt64BSGS: TButton
+        Left = 416
+        Top = 24
+        Width = 121
+        Height = 25
+        Caption = 'Int64 BSGS'
+        TabOrder = 2
+        OnClick = btnInt64BSGSClick
       end
     end
   end

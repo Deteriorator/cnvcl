@@ -1,7 +1,7 @@
 {******************************************************************************}
 {                       CnPack For Delphi/C++Builder                           }
 {                     中国人自己的开放源码第三方开发包                         }
-{                   (C)Copyright 2001-2020 CnPack 开发组                       }
+{                   (C)Copyright 2001-2021 CnPack 开发组                       }
 {                   ------------------------------------                       }
 {                                                                              }
 {            本开发包是开源的自由软件，您可以遵照 CnPack 的发布协议来修        }
@@ -52,7 +52,11 @@ unit CnFloatConvert;
 * 开发平台：WinXP + Delphi 2009
 * 兼容测试：Delphi 2007
 * 本 地 化：该单元中的字符串均符合本地化处理方式
-* 修改记录：2009.1.12
+* 修改记录：2020.11.11
+*               加入两个将 UInt64（不支持 UInt64 的以 Int64 代替）转换为浮点数的函数
+*           2020.06.24
+*               加入六个浮点数解开与拼凑的函数
+*           2009.1.12
 *               创建单元
 ================================================================================
 |</PRE>}
@@ -61,10 +65,98 @@ interface
 
 {$I CnPack.inc}
 
-{$IFNDEF WIN64}
-
 uses
-  SysUtils;
+  SysUtils, Classes, Windows, CnNativeDecl;
+
+{
+  IEEE 754 规定的三种浮点格式，有效数在低位 0：
+
+  单精度 Single             1 符号位 S，8 位指数 E，23 位有效数 M，共 4 字节 32 位
+  双精度 Double             1 符号位 S，11 位指数 E，52 位有效数 M，共 8 字节 64 位
+  扩展双精度 Extended       1 符号位 S，15 位指数 E，64 位有效数 M，共 10 字节 80 位
+
+  其中，符号位 S，0 表示正，1 表示负；E 要减去 127/1023/16383 才是真正指数
+        M: 规范化单/双精度的二进制 M 的高位加个 1. 代表有效数，扩展的无需加，自身有 1.
+           最终值：有效数乘以 2 的 E 次方
+
+  格式	        字节 1    字节 2    字节 3    字节 4    ...  字节 n（低位 0）
+  单精度 4      SXXXXXXX  XMMMMMMM  MMMMMMMM  MMMMMMMM
+  双精度 8      SXXXXXXX  XXXXMMMM  MMMMMMMM  MMMMMMMM  ...  MMMMMMMM
+  扩展双精度 10 SXXXXXXX  XXXXXXXX  1MMMMMMM  MMMMMMMM  ...  MMMMMMMM
+
+  0：全 0
+  -0：全 0 但符号位为 1
+  正负无穷大：指数全 1，有效数全 0，符号 0 或 1
+}
+
+const
+  CN_SIGN_SINGLE_MASK =          $80000000;
+  CN_SIGN_DOUBLE_MASK =          $8000000000000000;
+  CN_SIGN_EXTENDED_MASK =        $8000;      // 刨去了 8 字节有效数字
+
+  CN_EXPONENT_SINGLE_MASK =      $7F800000;          // 还要右移 23 位
+  CN_EXPONENT_DOUBLE_MASK =      $7FF0000000000000;  // 还要右移 52 位
+  CN_EXPONENT_EXTENDED_MASK =    $7FFF;       // 刨去了 8 字节有效数字
+
+  CN_SIGNIFICAND_SINGLE_MASK =   $007FFFFF;
+  CN_SIGNIFICAND_DOUBLE_MASK =   $000FFFFFFFFFFFFF;
+  CN_SIGNIFICAND_EXTENDED_MASK = $FFFFFFFFFFFFFFFF;  // 其实就是 8 字节整
+
+  CN_SINGLE_SIGNIFICAND_BITLENGTH         = 23;
+  CN_DOUBLE_SIGNIFICAND_BITLENGTH         = 52;
+  CN_EXTENDED_SIGNIFICAND_BITLENGTH       = 63;
+
+procedure ExtractFloatSingle(const Value: Single; out SignNegative: Boolean;
+  out Exponent: Integer; out Mantissa: Cardinal);
+{* 从单精度浮点数中解出符号位、指数、有效数字}
+
+procedure ExtractFloatDouble(const Value: Double; out SignNegative: Boolean;
+  out Exponent: Integer; out Mantissa: TUInt64);
+{* 从双精度浮点数中解出符号位、指数、有效数字}
+
+procedure ExtractFloatExtended(const Value: Extended; out SignNegative: Boolean;
+  out Exponent: Integer; out Mantissa: TUInt64);
+{* 从扩展精度浮点数中解出符号位、指数、有效数字}
+
+procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
+  Mantissa: Cardinal; var Value: Single);
+{* 把符号位、指数、有效数字拼成单精度浮点数}
+
+procedure CombineFloatDouble(SignNegative: Boolean; Exponent: Integer;
+  Mantissa: TUInt64; var Value: Double);
+{* 把符号位、指数、有效数字拼成双精度浮点数}
+
+procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
+  Mantissa: TUInt64; var Value: Extended);
+{* 把符号位、指数、有效数字拼成扩展精度浮点数}
+
+function UInt64ToDouble(U: TUInt64): Double;
+{* 把用 Int64 有符号整型模拟的 64 位无符号整型赋值给 Double}
+
+function UInt64ToExtended(U: TUInt64): Extended;
+{* 把用 Int64 有符号整型模拟的 64 位无符号整型赋值给 Extended}
+
+function SingleIsInfinite(const AValue: Single): Boolean;
+{* 单精度浮点数是否无穷大}
+
+function DoubleIsInfinite(const AValue: Double): Boolean;
+{* 双精度浮点数是否无穷大}
+
+function ExtendedIsInfinite(const AValue: Extended): Boolean;
+{* 扩展精度浮点数是否无穷大}
+
+function SingleIsNan(const AValue: Single): Boolean;
+{* 单精度浮点数是否非实数}
+
+function DoubleIsNan(const AValue: Double): Boolean;
+{* 双精度浮点数是否非实数}
+
+function ExtendedIsNan(const AValue: Extended): Boolean;
+{* 扩展精度浮点数是否非实数}
+
+{$IFNDEF WIN64}        // 64 位以及 Delphi 5、6 不支持以下三个函数
+{$IFNDEF COMPILER5}
+{$IFNDEF COMPILER6}
 
 { FloatDecimalToBinExtended, FloatDecimalToOctExtended，FloatDecimalToHexExtended
   均调用了 FloatDecimalToBinaryExtended 过程，FloatDecimalToBinaryExtended 不公开。}
@@ -79,10 +171,21 @@ function FloatDecimalToHexExtended(fIn: Extended; DecimalExp,
   AlwaysUseExponent: Boolean): AnsiString; // Convert to hexdecimal
 
 {$ENDIF}
+{$ENDIF}
+{$ENDIF}
 
 implementation
 
+type
+  TExtendedRec = packed record
+    Mantissa: TUInt64;
+    ExpSign: Word;
+  end;
+  PExtendedRec = ^TExtendedRec;
+
 {$IFNDEF WIN64}
+{$IFNDEF COMPILER5}
+{$IFNDEF COMPILER6}
 
 type
   PConvertFloatSystem = ^TConvertFloatSystem;
@@ -756,4 +859,151 @@ UseExponent:
 end;
 
 {$ENDIF}
+{$ENDIF}
+{$ENDIF}
+
+procedure ExtractFloatSingle(const Value: Single; out SignNegative: Boolean;
+  out Exponent: Integer; out Mantissa: Cardinal);
+begin
+  SignNegative := (PLongWord(@Value)^ and CN_SIGN_SINGLE_MASK) <> 0;
+  Exponent := ((PLongWord(@Value)^ and CN_EXPONENT_SINGLE_MASK) shr 23) - 127;
+  Mantissa := PLongWord(@Value)^ and CN_SIGNIFICAND_SINGLE_MASK;
+  Mantissa := Mantissa or (1 shl 23); // 高位再加个 1
+end;
+
+procedure ExtractFloatDouble(const Value: Double; out SignNegative: Boolean;
+  out Exponent: Integer; out Mantissa: TUInt64);
+begin
+  SignNegative := (PUInt64(@Value)^ and CN_SIGN_DOUBLE_MASK) <> 0;
+  Exponent := ((PUInt64(@Value)^ and CN_EXPONENT_DOUBLE_MASK) shr 52) - 1023;
+  Mantissa := PUInt64(@Value)^ and CN_SIGNIFICAND_DOUBLE_MASK;
+  Mantissa := Mantissa or (TUInt64(1) shl 52); // 高位再加个 1
+end;
+
+procedure ExtractFloatExtended(const Value: Extended; out SignNegative: Boolean;
+  out Exponent: Integer; out Mantissa: TUInt64);
+begin
+  SignNegative := (PExtendedRec(@Value)^.ExpSign and CN_SIGN_EXTENDED_MASK) <> 0;
+  Exponent := (PExtendedRec(@Value)^.ExpSign and CN_EXPONENT_EXTENDED_MASK) - 16383;
+  Mantissa := PExtendedRec(@Value)^.Mantissa; // 有 1，不用加了
+end;
+
+procedure CombineFloatSingle(SignNegative: Boolean; Exponent: Integer;
+  Mantissa: Cardinal; var Value: Single);
+begin
+  Mantissa := Mantissa and not (1 shl 23); // 去掉 23 位上的 1，如果有的话
+  PLongWord(@Value)^ := Mantissa and CN_SIGNIFICAND_SINGLE_MASK;
+  Inc(Exponent, 127);
+  PLongWord(@Value)^ := PLongWord(@Value)^ or (LongWord(Exponent) shl 23);
+  if SignNegative then
+    PLongWord(@Value)^ := PLongWord(@Value)^ or CN_SIGN_SINGLE_MASK
+  else
+    PLongWord(@Value)^ := PLongWord(@Value)^ and not CN_SIGN_SINGLE_MASK;
+end;
+
+procedure CombineFloatDouble(SignNegative: Boolean; Exponent: Integer;
+  Mantissa: TUInt64; var Value: Double);
+begin
+  Mantissa := Mantissa and not (TUInt64(1) shl 52); // 去掉 52 位上的 1，如果有的话
+  PUInt64(@Value)^ := Mantissa and CN_SIGNIFICAND_DOUBLE_MASK;
+  Inc(Exponent, 1023);
+  PUInt64(@Value)^ := PUInt64(@Value)^ or (TUInt64(Exponent) shl 52);
+  if SignNegative then
+    PUInt64(@Value)^ := PUInt64(@Value)^ or CN_SIGN_DOUBLE_MASK
+  else
+    PUInt64(@Value)^ := PUInt64(@Value)^ and not CN_SIGN_DOUBLE_MASK;
+end;
+
+procedure CombineFloatExtended(SignNegative: Boolean; Exponent: Integer;
+  Mantissa: TUInt64; var Value: Extended);
+begin
+  PExtendedRec(@Value)^.Mantissa := Mantissa;
+  Inc(Exponent, 16383);
+  PExtendedRec(@Value)^.ExpSign := Exponent and CN_EXPONENT_EXTENDED_MASK;
+  if SignNegative then
+    PExtendedRec(@Value)^.ExpSign := PExtendedRec(@Value)^.ExpSign or CN_SIGN_EXTENDED_MASK
+  else
+    PExtendedRec(@Value)^.ExpSign := PExtendedRec(@Value)^.ExpSign and not CN_SIGN_EXTENDED_MASK;
+end;
+
+function UInt64ToDouble(U: TUInt64): Double;
+{$IFNDEF SUPPORT_UINT64}
+var
+  L, H: Cardinal;
+{$ENDIF}
+begin
+{$IFDEF SUPPORT_UINT64}
+  Result := U;
+{$ELSE}
+  if U < 0 then // Int64 小于 0 时，代表的 UInt64 是大于 Int64 的最大值的
+  begin
+    H := Int64Rec(U).Hi;
+    L := Int64Rec(U).Lo;
+    Result := Int64(H) * Int64(MAX_UINT16 + 1); // 拆开两步乘
+    Result := Result * (MAX_UINT16 + 1);
+    Result := Result + L;
+  end
+  else
+    Result := U;
+{$ENDIF}
+end;
+
+function UInt64ToExtended(U: TUInt64): Extended;
+{$IFNDEF SUPPORT_UINT64}
+var
+  L, H: Cardinal;
+{$ENDIF}
+begin
+{$IFDEF SUPPORT_UINT64}
+  Result := U;
+{$ELSE}
+  if U < 0 then // Int64 小于 0 时，代表的 UInt64 是大于 Int64 的最大值的
+  begin
+    H := Int64Rec(U).Hi;
+    L := Int64Rec(U).Lo;
+    Result := Int64(H) * Int64(MAX_UINT16 + 1); // 拆开两步乘
+    Result := Result * (MAX_UINT16 + 1);
+    Result := Result + L;
+  end
+  else
+    Result := U;
+{$ENDIF}
+end;
+
+function SingleIsInfinite(const AValue: Single): Boolean;
+begin
+  Result := ((PLongWord(@AValue)^ and $7F800000) = $7F800000) and
+            ((PLongWord(@AValue)^ and $007FFFFF) = $00000000);
+end;
+
+function DoubleIsInfinite(const AValue: Double): Boolean;
+begin
+  Result := ((PUInt64(@AValue)^ and $7FF0000000000000) = $7FF0000000000000) and
+            ((PUInt64(@AValue)^ and $000FFFFFFFFFFFFF) = $0000000000000000);
+end;
+
+function ExtendedIsInfinite(const AValue: Extended): Boolean;
+begin
+  Result := ((PExtendedRec(@AValue)^.ExpSign and $7FFF) = $7FFF) and
+            ((PExtendedRec(@AValue)^.Mantissa) = 0);
+end;
+
+function SingleIsNan(const AValue: Single): Boolean;
+begin
+  Result := ((PLongWord(@AValue)^ and $7F800000)  = $7F800000) and
+            ((PLongWord(@AValue)^ and $007FFFFF) <> $00000000);
+end;
+
+function DoubleIsNan(const AValue: Double): Boolean;
+begin
+  Result := ((PUInt64(@AValue)^ and $7FF0000000000000)  = $7FF0000000000000) and
+            ((PUInt64(@AValue)^ and $000FFFFFFFFFFFFF) <> $0000000000000000);
+end;
+
+function ExtendedIsNan(const AValue: Extended): Boolean;
+begin
+  Result := ((PExtendedRec(@AValue)^.ExpSign and $7FFF)  = $7FFF) and
+            ((PExtendedRec(@AValue)^.Mantissa and $7FFFFFFFFFFFFFFF) <> 0);
+end;
+
 end.

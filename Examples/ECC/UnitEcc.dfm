@@ -1,6 +1,6 @@
 object FormEcc: TFormEcc
-  Left = 270
-  Top = 137
+  Left = 346
+  Top = 146
   Width = 860
   Height = 598
   Caption = 'ECC Test'
@@ -20,7 +20,7 @@ object FormEcc: TFormEcc
     Top = 16
     Width = 820
     Height = 535
-    ActivePage = tsPem
+    ActivePage = tsWrapData
     Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 0
     object tsSimpleECC: TTabSheet
@@ -564,7 +564,7 @@ object FormEcc: TFormEcc
         object btnGenEcc: TButton
           Left = 651
           Top = 24
-          Width = 107
+          Width = 106
           Height = 21
           Anchors = [akTop, akRight]
           Caption = 'Generate Small Ecc'
@@ -622,7 +622,7 @@ object FormEcc: TFormEcc
         object btnCalcNG: TButton
           Left = 651
           Top = 56
-          Width = 105
+          Width = 106
           Height = 21
           Anchors = [akTop, akRight]
           Caption = 'Calculate N*G'
@@ -689,39 +689,113 @@ object FormEcc: TFormEcc
           end
         end
         object btnLeRanDe: TButton
-          Left = 563
-          Top = 88
+          Left = 483
+          Top = 96
           Width = 75
           Height = 25
-          Anchors = [akTop, akRight]
           Caption = 'Legendre'
           TabOrder = 9
           OnClick = btnLeRanDeClick
         end
         object btnBNGXtoPoint: TButton
-          Left = 555
-          Top = 430
+          Left = 483
+          Top = 434
           Width = 75
           Height = 21
-          Anchors = [akRight, akBottom]
+          Anchors = [akLeft, akBottom]
           Caption = 'BN G.X to Pt'
           TabOrder = 12
           OnClick = btnBNGXtoPointClick
         end
         object btnInt64GXtoPt: TButton
-          Left = 563
-          Top = 120
+          Left = 483
+          Top = 128
           Width = 75
           Height = 21
-          Anchors = [akTop, akRight]
           Caption = 'G.X to Pt'
           TabOrder = 11
           OnClick = btnInt64GXtoPtClick
         end
+        object cbbInt64EccPreset: TComboBox
+          Left = 568
+          Top = 24
+          Width = 73
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 13
+          TabOrder = 13
+          OnChange = cbbInt64EccPresetChange
+          Items.Strings = (
+            'Preset 1'
+            'Preset 2')
+        end
+        object btnEccTestAdd: TButton
+          Left = 483
+          Top = 156
+          Width = 75
+          Height = 21
+          Caption = '? * G'
+          TabOrder = 14
+          OnClick = btnEccTestAddClick
+        end
+        object btnHassenTest: TButton
+          Left = 483
+          Top = 200
+          Width = 75
+          Height = 25
+          Caption = 'Hasse Test 1'
+          TabOrder = 15
+          OnClick = btnHassenTestClick
+        end
+        object btnHassenTest2: TButton
+          Left = 483
+          Top = 232
+          Width = 75
+          Height = 25
+          Caption = 'Hasse Test 2'
+          TabOrder = 16
+          OnClick = btnHassenTest2Click
+        end
+        object btnInt64SchoofTest: TButton
+          Left = 482
+          Top = 296
+          Width = 75
+          Height = 21
+          Caption = 'Schoof Test'
+          TabOrder = 17
+          OnClick = btnInt64SchoofTestClick
+        end
+        object btnInt64EccCountOrder: TButton
+          Left = 481
+          Top = 328
+          Width = 75
+          Height = 21
+          Caption = 'Count Order1'
+          TabOrder = 18
+          OnClick = btnInt64EccCountOrderClick
+        end
+        object btnInt64CountOrder1: TButton
+          Left = 481
+          Top = 360
+          Width = 75
+          Height = 21
+          Caption = 'Count Order2'
+          TabOrder = 19
+          OnClick = btnInt64CountOrder1Click
+        end
+        object btnInt64CountEccPoints3: TButton
+          Left = 481
+          Top = 392
+          Width = 75
+          Height = 21
+          Caption = 'Count Order3'
+          TabOrder = 20
+          OnClick = btnInt64CountEccPoints3Click
+        end
       end
     end
     object tsECC: TTabSheet
-      Caption = 'BigNumber ECC'
+      Caption = 'BigNumber ECC 1'
       ImageIndex = 2
       object grpBNEcc: TGroupBox
         Left = 16
@@ -850,7 +924,7 @@ object FormEcc: TFormEcc
         object edtBNEccOrder: TEdit
           Left = 56
           Top = 184
-          Width = 708
+          Width = 665
           Height = 21
           Anchors = [akLeft, akTop, akRight]
           TabOrder = 5
@@ -978,16 +1052,34 @@ object FormEcc: TFormEcc
           TabOrder = 19
           OnClick = btnBNEccCryptClick
         end
+        object btnBNUpdate: TButton
+          Left = 728
+          Top = 184
+          Width = 35
+          Height = 21
+          Caption = 'Set'
+          TabOrder = 20
+          OnClick = btnBNUpdateClick
+        end
+        object btnBNEccCalc: TButton
+          Left = 678
+          Top = 264
+          Width = 75
+          Height = 21
+          Caption = '? * G'
+          TabOrder = 21
+          OnClick = btnBNEccCalcClick
+        end
       end
     end
     object tsWrapData: TTabSheet
-      Caption = 'BigNumber ECC'
+      Caption = 'BigNumber ECC 2'
       ImageIndex = 3
       object grpWrap: TGroupBox
         Left = 16
         Top = 16
         Width = 780
-        Height = 391
+        Height = 329
         Anchors = [akLeft, akTop, akRight, akBottom]
         Caption = 'BigNumber Ecc'
         TabOrder = 0
@@ -1177,6 +1269,40 @@ object FormEcc: TFormEcc
           TabOrder = 2
           OnClick = btnBNEccWrapRangeClick
         end
+      end
+      object btnEccSchoof: TButton
+        Left = 210
+        Top = 368
+        Width = 75
+        Height = 21
+        Caption = 'Schoof Test'
+        TabOrder = 1
+        OnClick = btnEccSchoofClick
+      end
+      object btnSimpleAttack: TButton
+        Left = 16
+        Top = 368
+        Width = 75
+        Height = 21
+        Caption = 'Simple Attack'
+        TabOrder = 2
+        OnClick = btnSimpleAttackClick
+      end
+      object btnTestCRT: TButton
+        Left = 112
+        Top = 368
+        Width = 75
+        Height = 21
+        Caption = 'CRT Sample'
+        TabOrder = 3
+        OnClick = btnTestCRTClick
+      end
+      object mmoBNEccPoints: TMemo
+        Left = 304
+        Top = 368
+        Width = 217
+        Height = 121
+        TabOrder = 4
       end
     end
     object tsLucas: TTabSheet

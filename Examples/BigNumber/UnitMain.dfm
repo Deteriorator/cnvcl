@@ -1,8 +1,8 @@
 object FormBigNumber: TFormBigNumber
-  Left = 332
-  Top = 118
+  Left = 217
+  Top = 85
   Width = 1096
-  Height = 765
+  Height = 720
   Caption = 'Big Number Test'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -51,6 +51,13 @@ object FormBigNumber: TFormBigNumber
         Width = 24
         Height = 13
         Caption = 'Shift:'
+      end
+      object lblIntPower: TLabel
+        Left = 912
+        Top = 120
+        Width = 48
+        Height = 13
+        Caption = 'Exponent:'
       end
       object mmoNum1: TMemo
         Left = 16
@@ -521,9 +528,82 @@ object FormBigNumber: TFormBigNumber
         Top = 264
         Width = 129
         Height = 25
-        Caption = 'Check Prime'
+        Caption = 'Check Prime 1'
         TabOrder = 48
         OnClick = btnCheckPrimeClick
+      end
+      object btnIntPower: TButton
+        Left = 912
+        Top = 80
+        Width = 121
+        Height = 25
+        Caption = 'Integer Power'
+        TabOrder = 49
+        OnClick = btnIntPowerClick
+      end
+      object seIntPower: TSpinEdit
+        Left = 976
+        Top = 116
+        Width = 57
+        Height = 22
+        MaxValue = 1024
+        MinValue = 0
+        TabOrder = 50
+        Value = 18
+      end
+      object btnGetTenCount: TButton
+        Left = 912
+        Top = 48
+        Width = 121
+        Height = 25
+        Caption = '10 Precision'
+        TabOrder = 51
+        OnClick = btnGetTenCountClick
+      end
+      object btnCheckPrime2: TButton
+        Left = 904
+        Top = 392
+        Width = 129
+        Height = 25
+        Caption = 'Check Prime 2'
+        TabOrder = 52
+        OnClick = btnCheckPrime2Click
+      end
+      object btnBNCRT: TButton
+        Left = 904
+        Top = 440
+        Width = 129
+        Height = 25
+        Caption = 'Chinese Remainder '
+        TabOrder = 53
+        OnClick = btnBNCRTClick
+      end
+      object btnBNSqrt: TButton
+        Left = 904
+        Top = 224
+        Width = 129
+        Height = 25
+        Caption = 'Sqrt'
+        TabOrder = 54
+        OnClick = btnBNSqrtClick
+      end
+      object btnBNNextPrime: TButton
+        Left = 904
+        Top = 184
+        Width = 129
+        Height = 25
+        Caption = 'Next Prime'
+        TabOrder = 55
+        OnClick = btnBNNextPrimeClick
+      end
+      object btnBNMulKaratsuba: TButton
+        Left = 904
+        Top = 488
+        Width = 129
+        Height = 25
+        Caption = 'Mul Karatsuba'
+        TabOrder = 56
+        OnClick = btnBNMulKaratsubaClick
       end
     end
   end

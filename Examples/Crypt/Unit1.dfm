@@ -1,6 +1,6 @@
 object FormCrypt: TFormCrypt
   Left = 318
-  Top = 216
+  Top = 221
   BorderStyle = bsDialog
   Caption = 'Crypt/Decrypt DEMO for Win32/Win64'
   ClientHeight = 437
@@ -68,6 +68,13 @@ object FormCrypt: TFormCrypt
           Width = 142
           Height = 13
           Caption = 'Iv for CBC: 16 Hex (8 Bytes):'
+        end
+        object lblDesPadding: TLabel
+          Left = 264
+          Top = 162
+          Width = 42
+          Height = 13
+          Caption = 'Padding:'
         end
         object edtDesFrom: TEdit
           Left = 72
@@ -143,6 +150,26 @@ object FormCrypt: TFormCrypt
           Caption = 'ECB'
           TabOrder = 8
         end
+        object chkDESUseTBytes: TCheckBox
+          Left = 352
+          Top = 116
+          Width = 97
+          Height = 17
+          Caption = 'Use TBytes'
+          TabOrder = 9
+        end
+        object cbbDesPadding: TComboBox
+          Left = 320
+          Top = 160
+          Width = 145
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 13
+          TabOrder = 10
+          Items.Strings = (
+            'Zero'
+            'PKCS7')
+        end
       end
     end
     object ts3DES: TTabSheet
@@ -190,6 +217,13 @@ object FormCrypt: TFormCrypt
           Width = 142
           Height = 13
           Caption = 'Iv for CBC: 16 Hex (8 Bytes):'
+        end
+        object lbl3DesPadding: TLabel
+          Left = 264
+          Top = 162
+          Width = 42
+          Height = 13
+          Caption = 'Padding:'
         end
         object edt3DesFrom: TEdit
           Left = 72
@@ -264,6 +298,26 @@ object FormCrypt: TFormCrypt
           Height = 17
           Caption = 'ECB'
           TabOrder = 8
+        end
+        object chk3DESUseTBytes: TCheckBox
+          Left = 352
+          Top = 116
+          Width = 97
+          Height = 17
+          Caption = 'Use TBytes'
+          TabOrder = 9
+        end
+        object cbb3DesPadding: TComboBox
+          Left = 320
+          Top = 160
+          Width = 145
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 13
+          TabOrder = 10
+          Items.Strings = (
+            'Zero'
+            'PKCS7')
         end
       end
     end
@@ -361,7 +415,7 @@ object FormCrypt: TFormCrypt
       object GroupBox1: TGroupBox
         Left = 24
         Top = 24
-        Width = 433
+        Width = 513
         Height = 289
         Anchors = [akLeft, akTop, akRight]
         Caption = 'Base64'
@@ -445,10 +499,18 @@ object FormCrypt: TFormCrypt
           TabOrder = 5
           OnClick = btnDeBase64FileClick
         end
+        object chkBase64UseTBytes: TCheckBox
+          Left = 320
+          Top = 84
+          Width = 97
+          Height = 17
+          Caption = 'Use TBytes'
+          TabOrder = 7
+        end
       end
     end
     object tsCRC32: TTabSheet
-      Caption = 'CRC32'
+      Caption = 'CRC8/16/32'
       ImageIndex = 3
       object grpCRC32: TGroupBox
         Left = 24
@@ -456,7 +518,7 @@ object FormCrypt: TFormCrypt
         Width = 417
         Height = 289
         Anchors = [akLeft, akTop, akRight]
-        Caption = 'CRC32'
+        Caption = 'CRC8/16/32'
         TabOrder = 0
         object lblCRC: TLabel
           Left = 24
@@ -523,6 +585,42 @@ object FormCrypt: TFormCrypt
           Caption = 'CRC32 Hmac'
           TabOrder = 3
           OnClick = btnCRC32HmacClick
+        end
+        object btnCRC16: TButton
+          Left = 152
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'CRC16'
+          TabOrder = 6
+          OnClick = btnCRC16Click
+        end
+        object btnFileCRC16: TButton
+          Left = 152
+          Top = 208
+          Width = 75
+          Height = 25
+          Caption = 'File CRC16'
+          TabOrder = 7
+          OnClick = btnFileCRC16Click
+        end
+        object btnCRC8: TButton
+          Left = 232
+          Top = 80
+          Width = 75
+          Height = 25
+          Caption = 'CRC8'
+          TabOrder = 8
+          OnClick = btnCRC8Click
+        end
+        object btnFileCRC8: TButton
+          Left = 232
+          Top = 208
+          Width = 75
+          Height = 25
+          Caption = 'File CRC8'
+          TabOrder = 9
+          OnClick = btnFileCRC8Click
         end
       end
     end
@@ -791,7 +889,7 @@ object FormCrypt: TFormCrypt
         Width = 513
         Height = 289
         Anchors = [akLeft, akTop, akRight]
-        Caption = 'SM3'
+        Caption = 'SM4'
         TabOrder = 0
         object lblSm4: TLabel
           Left = 24
@@ -827,6 +925,13 @@ object FormCrypt: TFormCrypt
           Width = 148
           Height = 13
           Caption = 'Iv for CBC: 32 Hex (16 Bytes):'
+        end
+        object lblSm4Padding: TLabel
+          Left = 264
+          Top = 162
+          Width = 42
+          Height = 13
+          Caption = 'Padding:'
         end
         object edtSm4: TEdit
           Left = 72
@@ -902,6 +1007,26 @@ object FormCrypt: TFormCrypt
           TabOrder = 8
           Text = '0123456789ABCDEFFEDCBA9876543210'
         end
+        object chkSM4UseTBytes: TCheckBox
+          Left = 352
+          Top = 116
+          Width = 97
+          Height = 17
+          Caption = 'Use TBytes'
+          TabOrder = 9
+        end
+        object cbbSm4Padding: TComboBox
+          Left = 320
+          Top = 160
+          Width = 145
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 13
+          TabOrder = 10
+          Items.Strings = (
+            'Zero'
+            'PKCS7')
+        end
       end
     end
     object tsAES: TTabSheet
@@ -956,6 +1081,13 @@ object FormCrypt: TFormCrypt
           Width = 148
           Height = 13
           Caption = 'Iv for CBC: 32 Hex (16 Bytes):'
+        end
+        object lblAesPadding: TLabel
+          Left = 264
+          Top = 178
+          Width = 42
+          Height = 13
+          Caption = 'Padding:'
         end
         object edtAes: TEdit
           Left = 72
@@ -1043,6 +1175,26 @@ object FormCrypt: TFormCrypt
           Height = 21
           TabOrder = 9
           Text = '0123456789ABCDEFFEDCBA9876543210'
+        end
+        object chkAESUseTBytes: TCheckBox
+          Left = 352
+          Top = 132
+          Width = 97
+          Height = 17
+          Caption = 'Use TBytes'
+          TabOrder = 10
+        end
+        object cbbAesPadding: TComboBox
+          Left = 320
+          Top = 176
+          Width = 145
+          Height = 21
+          Style = csDropDownList
+          ItemHeight = 13
+          TabOrder = 11
+          Items.Strings = (
+            'Zero'
+            'PKCS7')
         end
       end
     end
