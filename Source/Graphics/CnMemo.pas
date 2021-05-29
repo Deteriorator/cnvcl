@@ -599,7 +599,7 @@ end;
 function MapWideCharIndexToColumns(const S: TCnEditorString; ACharIndex: Integer;
   out LeftColumn, RightColumn: Integer; AfterEnd: Boolean): Boolean;
 var
-  L, I: Integer;
+  L, I,Column: Integer;
   C: WideChar;
 begin
   Result := False;
@@ -632,8 +632,11 @@ begin
   while I <= L do
   begin
     C := S[I];
+    RightColumn:=1;
 
-    LeftColumn := RightColumn;
+    Column:= RightColumn;
+    LeftColumn := Column;
+
     if WideCharIsWideLength(C) then
       Inc(RightColumn, 2)
     else
